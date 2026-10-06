@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 반 사진 전시회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --soft:#EEF3F1; --soft-ink:#255F51; --hl:#E3A812; --plaque:#FFFFFF;
+  --wall:#E7ECEF; --ink:#24324A; --paper:#FFFFFF; --green:#2F7A68; --green-d:#255F51;
+  --gold:#E3A812; --silver:#97A3AF; --bronze:#BF7742; --muted:#677388; --line:#D2D9DF;
+  --danger:#B93A27; --frame:#3B3F48;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--wall);color:var(--ink);font-family:"Gowun Dodum",system-ui,sans-serif;font-size:17px;line-height:1.6;min-height:100vh}
+h1,h2,h3,.jua{font-family:"Jua","Gowun Dodum",sans-serif;font-weight:400;margin:0}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.hidden{display:none!important}
+
+/* header */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:20px 16px 8px;max-width:1100px;margin:0 auto}
+header h1{font-size:clamp(30px,6vw,46px);line-height:1.1;letter-spacing:-.5px}
+header h1 small{display:block;font-family:"Gowun Dodum",sans-serif;font-size:15px;color:var(--muted);letter-spacing:0;margin-top:4px}
+.who{display:flex;gap:8px;align-items:center}
+.chip{background:var(--ink);color:#fff;border-radius:999px;padding:6px 14px;font-family:"Jua",sans-serif}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;padding:6px}
+.demo{max-width:1100px;margin:0 auto 4px;padding:8px 16px;font-size:14px;color:#7A5A00;background:#FFF4CF;border-radius:8px}
+
+/* tabs */
+nav{display:flex;gap:6px;max-width:1100px;margin:8px auto 0;padding:0 16px;border-bottom:2px solid var(--ink)}
+nav button{background:none;border:0;padding:10px 16px;font-family:"Jua",sans-serif;font-size:19px;color:var(--muted);border-radius:10px 10px 0 0}
+nav button.on{background:var(--ink);color:#fff}
+
+/* login */
+.login{max-width:640px;margin:40px auto;background:var(--paper);border-radius:16px;padding:28px}
+.login h2{font-size:26px;margin-bottom:6px}
+.nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;margin:18px 0}
+.nums button{aspect-ratio:1;border:2px solid var(--line);background:#fff;border-radius:12px;font-family:"Jua",sans-serif;font-size:22px}
+.nums button:hover{border-color:var(--ink)}
+.teacher-login{display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px dashed var(--line);padding-top:16px}
+input[type=password],input[type=text],input[type=number],textarea{border:2px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;width:100%}
+textarea{min-height:90px;resize:vertical}
+.btn{background:var(--green);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-family:"Jua",sans-serif;font-size:18px}
+.btn:hover{background:var(--green-d)}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.btn.danger{background:#fff;color:var(--danger);border:2px solid #E8C3BC}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* gallery wall */
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:34px 26px;padding:28px 4px}
+.work{background:none;border:0;padding:0;text-align:left;display:flex;flex-direction:column;align-items:center}
+.frame{background:var(--paper);border:7px solid var(--frame);padding:12px;box-shadow:0 10px 18px -12px rgba(36,50,74,.55);width:100%}
+.frame img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#ddd}
+.work:hover .frame{transform:rotate(-.6deg)}
+.plaque{background:var(--plaque);margin-top:12px;padding:8px 12px;width:82%;border-radius:3px;box-shadow:0 1px 0 var(--line)}
+.plaque h3{font-size:19px;line-height:1.3}
+.plaque .meta{font-size:14px;color:var(--muted);display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.plaque .secret{font-size:13px;color:var(--green-d);margin-top:2px}
+.tag{display:inline-block;font-size:13px;padding:1px 8px;border-radius:999px;background:var(--soft);color:var(--soft-ink)}
+.tag.todo{background:#FFF1D6;color:#8A5B00}
+.empty{text-align:center;padding:60px 16px;color:var(--muted)}
+
+/* upload */
+.panel{background:var(--paper);border-radius:16px;padding:22px;margin:20px auto;max-width:720px}
+.panel h2{font-size:24px;margin-bottom:12px}
+.field{margin-bottom:16px}
+.field label.lbl{display:block;font-family:"Jua",sans-serif;font-size:18px;margin-bottom:4px}
+.hint{font-size:14px;color:var(--muted)}
+.lock{font-size:14px;color:var(--soft-ink);background:var(--soft);padding:6px 10px;border-radius:8px;margin:4px 0 8px}
+.preview{max-width:100%;max-height:320px;border:6px solid var(--frame);margin-top:10px;display:block}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick label{display:inline-flex}
+.pick input{position:absolute;opacity:0;pointer-events:none}
+.pick span{display:inline-block;min-width:48px;text-align:center;padding:6px 8px;border:2px solid var(--line);border-radius:10px;background:#fff;font-family:"Jua",sans-serif}
+.pick input:checked+span{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pick input:focus-visible+span{outline:3px solid var(--gold)}
+.pick input:disabled+span{opacity:.5}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(30,38,52,.6);display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow-y:auto;z-index:20}
+.sheet{background:var(--paper);border-radius:16px;max-width:820px;width:100%;padding:20px;position:relative}
+.close{position:absolute;top:10px;right:10px;width:42px;height:42px;border-radius:50%;border:0;background:var(--wall);font-size:22px}
+.big{width:100%;max-height:70vh;object-fit:contain;background:#1f2430;border:7px solid var(--frame)}
+.sheet h2{font-size:28px;margin:14px 0 4px;padding-right:40px}
+.desc{white-space:pre-wrap;margin:0 0 10px}
+.sec{border-top:1px dashed var(--line);margin-top:16px;padding-top:14px}
+.sec h3{font-size:20px;margin-bottom:8px}
+.scores{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.scores button{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);background:#fff;font-family:"Jua",sans-serif;font-size:20px;padding:0}
+.scores button.on{background:var(--hl);border-color:var(--hl);color:#fff}
+@media (max-width:520px){.scores{grid-template-columns:repeat(5,1fr)}}
+.cmt{background:var(--soft);border-radius:12px;padding:8px 12px;margin-bottom:8px;display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+.cmt p{margin:0;white-space:pre-wrap}
+.cmt .by{font-size:13px;color:var(--muted)}
+.cmt button{background:none;border:0;color:var(--muted);font-size:13px;text-decoration:underline;flex-shrink:0}
+.row{display:flex;gap:8px;align-items:flex-end}
+.row textarea{min-height:60px}
+.teacher{background:#F3F6F8;border-radius:12px;padding:14px;margin-top:16px}
+.tbl{width:100%;border-collapse:collapse;font-size:15px}
+.tbl th,.tbl td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl-wrap{overflow-x:auto}
+.x{color:var(--danger);text-decoration:line-through}
+.why{font-size:13px;color:var(--danger)}
+
+/* ranking */
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:16px;align-items:end;margin:26px 0}
+.place{text-align:center;cursor:pointer;background:none;border:0;padding:0}
+.place .frame{border-width:6px}
+.place .medal{font-family:"Jua",sans-serif;font-size:22px;color:#fff;border-radius:999px;display:inline-block;padding:2px 16px;margin-top:-14px;position:relative}
+.p1 .medal{background:var(--gold);font-size:26px}.p2 .medal{background:var(--silver)}.p3 .medal{background:var(--bronze)}
+.p1 .frame{border-color:var(--gold)}.p2 .frame{border-color:var(--silver)}.p3 .frame{border-color:var(--bronze)}
+.place h3{font-size:20px;margin-top:6px}
+.place .avg{color:var(--muted);font-size:15px}
+@media (max-width:640px){.podium{grid-template-columns:1fr}.p1{order:-1}}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.switch{display:flex;gap:8px;align-items:center}
+.switch input{width:22px;height:22px}
+
+/* 비밀번호 */
+.pinbox{border-top:1px dashed var(--line);padding:16px 0 4px;margin-bottom:12px}
+.pinbox h3{font-size:22px;margin-bottom:8px}
+.pinbox .row{align-items:center}
+.pinbox input{max-width:180px;font-size:24px;letter-spacing:6px;text-align:center}
+.pins{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pins label{display:flex;align-items:center;gap:6px;background:var(--wall);border-radius:10px;padding:6px 10px}
+.pins label b{font-family:"Jua",sans-serif;font-weight:400;min-width:38px}
+.pins input{padding:6px 8px;letter-spacing:3px;text-align:center}
+.pins input.none{border-color:#E8C3BC;background:#FFF6F4}
+#printArea{display:none}
+#printArea.show{display:block;position:fixed;inset:0;background:#fff;z-index:40;overflow-y:auto;padding:20px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:0;max-width:900px;margin:0 auto}
+.cards div{border:1px dashed #999;padding:14px 8px;text-align:center;break-inside:avoid}
+.cards b{display:block;font-family:"Jua",sans-serif;font-weight:400;font-size:22px}
+.cards span{font-size:28px;letter-spacing:6px}
+.cards p{margin:4px 0 0;font-size:12px}
+@media (max-width:560px){.cards{grid-template-columns:repeat(2,1fr)}}
+.print-bar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.confirm{position:fixed;inset:0;background:rgba(30,38,52,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.confirm .box{background:#fff;border-radius:16px;padding:22px;max-width:380px;width:100%}
+.confirm p{margin:0 0 16px;font-size:18px}
+.confirm .btns{display:flex;gap:8px;justify-content:flex-end}
+@media print{
+  body{background:#fff}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;position:static;padding:0}
+  .print-bar{display:none!important}
+  .cards{grid-template-columns:repeat(4,1fr)}
+}
+/* 전시회 목록 */
+.exlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:22px;padding:12px 0 24px}
+.excard{background:var(--paper);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.excard>button.open{background:none;border:0;padding:0;text-align:left;display:block;width:100%}
+.cover{aspect-ratio:16/9;background:var(--frame);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cover img{width:100%;height:100%;object-fit:cover;opacity:.92}
+.cover .blank{color:#fff;font-family:"Jua",sans-serif;font-size:20px;opacity:.6}
+.exinfo{padding:12px 16px 14px}
+.exinfo h3{font-size:24px;line-height:1.25}
+.exinfo p{margin:2px 0 6px;color:var(--muted);font-size:15px}
+.exinfo .meta{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
+.tag.done{background:#E9E5F2;color:#5A4A86}
+.exact{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 14px}
+.exact .btn{font-size:15px;padding:6px 12px}
+.exedit{padding:0 16px 14px;display:grid;gap:8px}
+.home-foot{text-align:center;padding:10px 0 30px}
+.back{background:none;border:0;color:var(--ink);font-family:"Jua",sans-serif;font-size:17px;padding:6px 10px;border-radius:999px;border:2px solid var(--line)}
+/* 배경 테마 */
+[data-theme]{background-color:var(--wall)}
+[data-theme="spring"]{--wall:#F8E8EC;--ink:#4B2C36;--frame:#9C6B5B;--green:#C64F70;--green-d:#A43C59;--line:#EDD0D8;--muted:#86646E;--soft:#FBE1E8;--soft-ink:#A43C59;--hl:#E37E98;--plaque:#FFFBFC;--frame-in:#F2C6D1;
+  background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280"%3E%3Cg transform="translate(20 20) rotate(10 12 12) scale(1.7)" opacity="0.55"%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(0 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(72 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(144 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(216 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(288 12 12)"/%3E%3Ccircle cx="12" cy="12" r="2.6" fill="%23D9607E"/%3E%3C/g%3E%3Cg transform="translate(170 60) rotate(40 12 12) scale(1.3)" opacity="0.6"%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(0 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(72 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(144 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(216 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(288 12 12)"/%3E%3Ccircle cx="12" cy="12" r="2.6" fill="%23E07B95"/%3E%3C/g%3E%3Cg transform="translate(90 150) rotate(-20 12 12) scale(1.5)" opacity="0.5"%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F5B3C3" transform="rotate(0 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F5B3C3" transform="rotate(72 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F5B3C3" transform="rotate(144 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F5B3C3" transform="rotate(216 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F5B3C3" transform="rotate(288 12 12)"/%3E%3Ccircle cx="12" cy="12" r="2.6" fill="%23D9607E"/%3E%3C/g%3E%3Cg transform="translate(215 195) rotate(30 12 12) scale(1.1)" opacity="0.55"%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(0 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(72 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(144 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(216 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F2A3B6" transform="rotate(288 12 12)"/%3E%3Ccircle cx="12" cy="12" r="2.6" fill="%23E07B95"/%3E%3C/g%3E%3Cg transform="translate(30 225) rotate(0 12 12) scale(0.9)" opacity="0.5"%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(0 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(72 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(144 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(216 12 12)"/%3E%3Cellipse cx="12" cy="6.2" rx="3.6" ry="5.2" fill="%23F8C5D1" transform="rotate(288 12 12)"/%3E%3Ccircle cx="12" cy="12" r="2.6" fill="%23D9607E"/%3E%3C/g%3E%3Cellipse cx="120" cy="40" rx="3" ry="5" fill="%23F2A3B6" opacity="0.5" transform="rotate(30 120 40)"/%3E%3Cellipse cx="240" cy="120" rx="3" ry="5" fill="%23F8C5D1" opacity="0.6" transform="rotate(-40 240 120)"/%3E%3Cellipse cx="60" cy="110" rx="3" ry="5" fill="%23F5B3C3" opacity="0.5" transform="rotate(70 60 110)"/%3E%3Cellipse cx="150" cy="250" rx="3" ry="5" fill="%23F2A3B6" opacity="0.45" transform="rotate(10 150 250)"/%3E%3Cellipse cx="260" cy="20" rx="3" ry="5" fill="%23F8C5D1" opacity="0.5" transform="rotate(-10 260 20)"/%3E%3Cpath d="M0 8C0 3 4 0 10 0C10 5 6 8 0 8Z" fill="%239CC27A" opacity="0.5" transform="translate(70 60) rotate(20)"/%3E%3Cpath d="M0 8C0 3 4 0 10 0C10 5 6 8 0 8Z" fill="%239CC27A" opacity="0.45" transform="translate(200 150) rotate(-30)"/%3E%3Cpath d="M0 8C0 3 4 0 10 0C10 5 6 8 0 8Z" fill="%239CC27A" opacity="0.4" transform="translate(130 215) rotate(60)"/%3E%3C/svg%3E');background-size:380px 380px}
+[data-theme="summer"]{--wall:#DCF0F1;--ink:#173848;--frame:#2C5F75;--green:#1E879B;--green-d:#166A7A;--line:#BFE0E4;--muted:#4F6F7C;--soft:#D8F0F2;--soft-ink:#166A7A;--hl:#F2A62B;--plaque:#FBFEFF;--frame-in:#F6C445;
+  background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280"%3E%3Cpath d="M20 40q7-7 14 0t14 0t14 0" fill="none" stroke="%235DB8C8" stroke-width="3" stroke-linecap="round" opacity="0.55"/%3E%3Cpath d="M160 110q7-7 14 0t14 0t14 0" fill="none" stroke="%237CC6D1" stroke-width="3" stroke-linecap="round" opacity="0.6"/%3E%3Cpath d="M60 200q7-7 14 0t14 0t14 0" fill="none" stroke="%235DB8C8" stroke-width="3" stroke-linecap="round" opacity="0.5"/%3E%3Cpath d="M200 250q7-7 14 0t14 0t14 0" fill="none" stroke="%237CC6D1" stroke-width="3" stroke-linecap="round" opacity="0.55"/%3E%3Cpath d="M230 30q7-7 14 0t14 0t14 0" fill="none" stroke="%235DB8C8" stroke-width="3" stroke-linecap="round" opacity="0.45"/%3E%3Cg transform="translate(110 20) scale(1.6)" opacity="0.6"%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(0 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(45 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(90 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(135 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(180 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(225 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(270 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(315 12 12)"/%3E%3Ccircle cx="12" cy="12" r="5.5" fill="%23F6C445"/%3E%3C/g%3E%3Cg transform="translate(20 120) scale(1.1)" opacity="0.55"%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(0 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(45 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(90 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(135 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(180 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(225 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(270 12 12)"/%3E%3Cline x1="12" y1="1" x2="12" y2="4.5" stroke="%23F2B630" stroke-width="2" stroke-linecap="round" transform="rotate(315 12 12)"/%3E%3Ccircle cx="12" cy="12" r="5.5" fill="%23F6C445"/%3E%3C/g%3E%3Cg transform="translate(190 170) rotate(-15 12 8) scale(1.6)" opacity="0.6"%3E%3Cpath d="M2 8A10 10 0 0 0 22 8Z" fill="%23E8505B"/%3E%3Cpath d="M1.5 8A10.5 10.5 0 0 0 22.5 8" fill="none" stroke="%234FA35A" stroke-width="2.4"/%3E%3Cellipse cx="8" cy="11" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3Cellipse cx="12" cy="13" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3Cellipse cx="16" cy="11" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3C/g%3E%3Cg transform="translate(100 100) rotate(20 12 8) scale(1.2)" opacity="0.55"%3E%3Cpath d="M2 8A10 10 0 0 0 22 8Z" fill="%23E8505B"/%3E%3Cpath d="M1.5 8A10.5 10.5 0 0 0 22.5 8" fill="none" stroke="%234FA35A" stroke-width="2.4"/%3E%3Cellipse cx="8" cy="11" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3Cellipse cx="12" cy="13" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3Cellipse cx="16" cy="11" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3C/g%3E%3Cg transform="translate(30 250) rotate(10 12 8) scale(1.0)" opacity="0.5"%3E%3Cpath d="M2 8A10 10 0 0 0 22 8Z" fill="%23E8505B"/%3E%3Cpath d="M1.5 8A10.5 10.5 0 0 0 22.5 8" fill="none" stroke="%234FA35A" stroke-width="2.4"/%3E%3Cellipse cx="8" cy="11" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3Cellipse cx="12" cy="13" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3Cellipse cx="16" cy="11" rx=".9" ry="1.4" fill="%233A2A2A"/%3E%3C/g%3E%3C/svg%3E');background-size:380px 380px}
+[data-theme="autumn"]{--wall:#EFDDBD;--ink:#3E2716;--frame:#6E4424;--green:#B04E25;--green-d:#8E3C1B;--line:#DCC7A4;--muted:#7A6450;--soft:#F6E7CC;--soft-ink:#8E3C1B;--hl:#D9822B;--plaque:#FFFBF3;--frame-in:#C9A46A;
+  background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280"%3E%3Cg transform="translate(14 18) rotate(-18 12 12) scale(1.6)" opacity="0.5"%3E%3Cpath d="M12 2L13.5 6.5L16 5L15.5 9L19.5 7.5L18 11L21 12L17 14L18 16.5L13.5 15.5L12.6 21H11.4L10.5 15.5L6 16.5L7 14L3 12L6 11L4.5 7.5L8.5 9L8 5L10.5 6.5Z" fill="%23C2552B"/%3E%3Cpath d="M12 21V23" stroke="%23C2552B" stroke-width="1.2"/%3E%3C/g%3E%3Cg transform="translate(150 10) rotate(24 12 12) scale(1.4)" opacity="0.55"%3E%3Cpath d="M12 13C7 13 3 9.5 3.5 5C6.5 6 9 4.5 12 6.5C15 4.5 17.5 6 20.5 5C21 9.5 17 13 12 13Z" fill="%23E3B23C"/%3E%3Cpath d="M12 13V21" stroke="%23E3B23C" stroke-width="1.2"/%3E%3C/g%3E%3Cg transform="translate(90 90) rotate(40 12 12) scale(1.2)" opacity="0.4"%3E%3Cpath d="M4 20C4 10 10 4 20 4C20 14 14 20 4 20Z" fill="%238C7A35"/%3E%3Cpath d="M4 20L15 9" stroke="%23fff" stroke-opacity=".5" stroke-width="1"/%3E%3C/g%3E%3Cg transform="translate(200 130) rotate(30 12 12) scale(1.3)" opacity="0.45"%3E%3Cpath d="M12 2L13.5 6.5L16 5L15.5 9L19.5 7.5L18 11L21 12L17 14L18 16.5L13.5 15.5L12.6 21H11.4L10.5 15.5L6 16.5L7 14L3 12L6 11L4.5 7.5L8.5 9L8 5L10.5 6.5Z" fill="%23D9822B"/%3E%3Cpath d="M12 21V23" stroke="%23D9822B" stroke-width="1.2"/%3E%3C/g%3E%3Cg transform="translate(30 170) rotate(-30 12 12) scale(1.2)" opacity="0.5"%3E%3Cpath d="M12 13C7 13 3 9.5 3.5 5C6.5 6 9 4.5 12 6.5C15 4.5 17.5 6 20.5 5C21 9.5 17 13 12 13Z" fill="%23E3B23C"/%3E%3Cpath d="M12 13V21" stroke="%23E3B23C" stroke-width="1.2"/%3E%3C/g%3E%3Cg transform="translate(230 30) rotate(-60 12 12) scale(1.0)" opacity="0.4"%3E%3Cpath d="M4 20C4 10 10 4 20 4C20 14 14 20 4 20Z" fill="%23A8452A"/%3E%3Cpath d="M4 20L15 9" stroke="%23fff" stroke-opacity=".5" stroke-width="1"/%3E%3C/g%3E%3Cg transform="translate(110 200) rotate(12 12 12) scale(1.0)" opacity="0.4"%3E%3Cpath d="M12 2L13.5 6.5L16 5L15.5 9L19.5 7.5L18 11L21 12L17 14L18 16.5L13.5 15.5L12.6 21H11.4L10.5 15.5L6 16.5L7 14L3 12L6 11L4.5 7.5L8.5 9L8 5L10.5 6.5Z" fill="%239C3B22"/%3E%3Cpath d="M12 21V23" stroke="%239C3B22" stroke-width="1.2"/%3E%3C/g%3E%3Cg transform="translate(190 220) rotate(70 12 12) scale(1.0)" opacity="0.45"%3E%3Cpath d="M12 13C7 13 3 9.5 3.5 5C6.5 6 9 4.5 12 6.5C15 4.5 17.5 6 20.5 5C21 9.5 17 13 12 13Z" fill="%23D9A23B"/%3E%3Cpath d="M12 13V21" stroke="%23D9A23B" stroke-width="1.2"/%3E%3C/g%3E%3Cg transform="translate(60 110) rotate(150 12 12) scale(0.8)" opacity="0.35"%3E%3Cpath d="M4 20C4 10 10 4 20 4C20 14 14 20 4 20Z" fill="%23C2552B"/%3E%3Cpath d="M4 20L15 9" stroke="%23fff" stroke-opacity=".5" stroke-width="1"/%3E%3C/g%3E%3C/svg%3E');background-size:380px 380px}
+[data-theme="winter"]{--wall:#D6E3F1;--ink:#1E2D46;--frame:#4E6286;--green:#3A68AE;--green-d:#2D528A;--line:#C6D4E6;--muted:#5D6E88;--soft:#E3ECF7;--soft-ink:#2D528A;--hl:#5B8BD0;--plaque:#FFFFFF;--frame-in:#E9F0FA;
+  background-image:url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280"%3E%3Cg transform="translate(20 20) rotate(0 12 12) scale(1.9)" stroke="%23FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.9"%3E%3Cg transform="rotate(0 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(60 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(120 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(180 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(240 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(300 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3C/g%3E%3Cg transform="translate(170 50) rotate(15 12 12) scale(1.3)" stroke="%239DB9DE" stroke-width="1.5" stroke-linecap="round" opacity="0.7"%3E%3Cg transform="rotate(0 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(60 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(120 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(180 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(240 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(300 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3C/g%3E%3Cg transform="translate(95 140) rotate(30 12 12) scale(1.6)" stroke="%23FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.85"%3E%3Cg transform="rotate(0 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(60 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(120 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(180 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(240 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(300 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3C/g%3E%3Cg transform="translate(220 190) rotate(10 12 12) scale(1.2)" stroke="%23FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.9"%3E%3Cg transform="rotate(0 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(60 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(120 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(180 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(240 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(300 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3C/g%3E%3Cg transform="translate(25 215) rotate(20 12 12) scale(1.0)" stroke="%239DB9DE" stroke-width="1.5" stroke-linecap="round" opacity="0.65"%3E%3Cg transform="rotate(0 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(60 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(120 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(180 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(240 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(300 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3C/g%3E%3Cg transform="translate(230 10) rotate(0 12 12) scale(0.8)" stroke="%23FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.8"%3E%3Cg transform="rotate(0 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(60 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(120 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(180 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(240 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3Cg transform="rotate(300 12 12)"%3E%3Cline x1="12" y1="12" x2="12" y2="1" /%3E%3Cpolyline points="9,4 12,6.5 15,4" fill="none"/%3E%3Cpolyline points="10,7.5 12,9.2 14,7.5" fill="none"/%3E%3C/g%3E%3C/g%3E%3Ccircle cx="130" cy="40" r="3" fill="%23FFFFFF" opacity="0.9"/%3E%3Ccircle cx="60" cy="100" r="2.2" fill="%23FFFFFF" opacity="0.8"/%3E%3Ccircle cx="250" cy="120" r="2.8" fill="%23FFFFFF" opacity="0.9"/%3E%3Ccircle cx="160" cy="240" r="2.5" fill="%23FFFFFF" opacity="0.85"/%3E%3Ccircle cx="110" cy="260" r="1.8" fill="%23FFFFFF" opacity="0.8"/%3E%3Ccircle cx="200" cy="140" r="1.6" fill="%23FFFFFF" opacity="0.8"/%3E%3Ccircle cx="15" cy="150" r="2.4" fill="%23FFFFFF" opacity="0.85"/%3E%3C/svg%3E');background-size:380px 380px}
+[data-theme] .frame{box-shadow:inset 0 0 0 2px var(--frame-in,transparent),0 12px 20px -12px rgba(0,0,0,.45)}
+#bg{position:fixed;inset:0;z-index:-1;pointer-events:none}
+body[data-dark="1"] header h1,body[data-dark="1"] .link,body[data-dark="1"] .empty{color:#fff;text-shadow:none}
+body[data-dark="1"] header h1 small{color:rgba(255,255,255,.85)}
+header h1{text-shadow:0 2px 0 rgba(255,255,255,.75)}
+body[data-theme] nav{background:rgba(255,255,255,.55);border-radius:12px 12px 0 0}
+select{border:2px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;width:100%}
+/* 배경 고르기 창 */
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.themes label{cursor:pointer}
+.themes input{position:absolute;opacity:0;pointer-events:none}
+.themes .sw{display:block;height:70px;border-radius:10px;border:3px solid transparent;background-size:200px 200px}
+.themes .sw[data-theme="plain"]{background:#E7ECEF}
+.themes .sw.custom{background:repeating-linear-gradient(45deg,#fff 0 8px,#eef 8px 16px);display:flex;align-items:center;justify-content:center;font-size:28px}
+.themes b{display:block;text-align:center;font-family:"Jua",sans-serif;font-weight:400;font-size:16px;margin-top:2px}
+.themes input:checked+.sw{border-color:var(--ink)}
+.themes input:focus-visible+.sw{outline:3px solid var(--gold)}
+.customset{display:grid;gap:12px;background:#F4F6F8;border-radius:12px;padding:14px;margin-top:12px}
+.customset input[type=color]{width:64px;height:40px;border:2px solid var(--line);border-radius:8px;padding:2px;background:#fff}
+.customset input[type=range]{width:100%}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg label{display:inline-flex}
+.seg input{position:absolute;opacity:0}
+.seg span{padding:6px 12px;border:2px solid var(--line);border-radius:999px;background:#fff}
+.seg input:checked+span{background:var(--ink);color:#fff;border-color:var(--ink)}
+.bgprev{height:150px;border-radius:12px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;overflow:hidden}
+.bgprev i{display:block;width:70px;height:54px;background:#fff;border:5px solid var(--frame,#3B3F48)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;z-index:50;font-size:15px}
+@media (prefers-reduced-motion:no-preference){.work .frame{transition:transform .2s}}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+
+<header>
+  <h1><span id="hTitle">우리 반 사진 전시회</span><small id="hSub">어느 전시회에 들어갈까요?</small></h1>
+  <div class="who"><button class="back hidden" id="toHome">전시회 목록</button><span class="chip hidden" id="whoName"></span><button class="link hidden" id="logout">나가기</button></div>
+</header>
+<div class="demo hidden" id="demoNote">체험 모드예요. Firebase 설정을 넣기 전이라 이 화면에서만 보이고, 새로고침하면 사라져요.</div>
+
+<!-- 전시회 목록 -->
+<section id="homeView" class="wrap">
+  <div id="exNewWrap" class="hidden" style="padding-top:8px"><button class="btn" id="exNew">새 전시회 열기</button></div>
+  <div class="exlist" id="exList"></div>
+  <div class="home-foot"><button class="link" id="homeTeacher">선생님으로 들어가기</button></div>
+</section>
+
+<!-- 로그인 -->
+<section id="loginView" class="login hidden">
+  <button class="link" id="loginBack" style="padding:0 0 10px">← 전시회 목록으로</button>
+  <h2>내 번호를 눌러요</h2>
+  <div class="hint">번호를 누르면 전시장에 들어가요.</div>
+  <div class="nums" id="numGrid"></div>
+  <div class="pinbox hidden" id="pinBox">
+    <h3 id="pinTitle"></h3>
+    <div class="row">
+      <input type="password" id="spw" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+      <button class="btn" id="sLoginBtn">들어가기</button>
+      <button class="link" id="pinCancel">번호 다시 고르기</button>
+    </div>
+    <div class="hint">비밀번호를 모르면 선생님께 물어보세요.</div>
+  </div>
+  <div class="teacher-login">
+    <span class="jua" style="font-size:18px">선생님</span>
+    <input type="password" id="tpw" placeholder="비밀번호" style="max-width:160px" inputmode="numeric">
+    <button class="btn ghost" id="tLoginBtn">들어가기</button>
+  </div>
+</section>
+
+<!-- 메인 -->
+<div id="mainView" class="hidden">
+  <nav>
+    <button data-tab="gallery" class="on">전시장</button>
+    <button data-tab="upload">사진 올리기</button>
+    <button data-tab="rank">순위</button>
+    <button data-tab="manage" id="manageTabBtn" class="hidden">학생 비밀번호</button>
+  </nav>
+
+  <div class="wrap">
+    <section id="tab-gallery"><div class="wall" id="wall"></div></section>
+
+    <section id="tab-upload" class="hidden">
+      <div class="panel empty hidden" id="closedNote"><p class="jua" style="font-size:22px;color:var(--ink)">끝난 전시회예요</p><p>이 전시회에는 더 이상 사진을 올릴 수 없어요.</p></div>
+      <div class="panel" id="uploadPanel">
+        <h2>사진 올리기</h2>
+        <div class="field">
+          <label class="lbl" for="file">사진</label>
+          <input type="file" id="file" accept="image/*">
+          <img id="preview" class="preview hidden" alt="올릴 사진 미리보기">
+        </div>
+        <div class="field">
+          <label class="lbl" for="title">작품 이름</label>
+          <input type="text" id="title" maxlength="30" placeholder="예: 친구를 기다리는 마음">
+        </div>
+        <div class="field">
+          <label class="lbl" for="desc">무엇을 표현했나요?</label>
+          <textarea id="desc" maxlength="400" placeholder="이 사진으로 어떤 마음이나 이야기를 보여 주고 싶었는지 써 보세요."></textarea>
+        </div>
+        <div class="field">
+          <span class="lbl jua" style="font-size:18px;display:block">누구누구 같이 했나요?</span>
+          <div class="lock">🔒 같이 한 친구는 선생님만 볼 수 있어요. 친구들에게는 보이지 않아요.</div>
+          <div class="pick" id="memberPick"></div>
+        </div>
+        <button class="btn" id="uploadBtn">전시장에 걸기</button>
+      </div>
+    </section>
+
+    <section id="tab-rank" class="hidden">
+      <div id="rankArea"></div>
+      <div id="teacherRank" class="hidden"></div>
+    </section>
+
+    <section id="tab-manage" class="hidden">
+      <div class="panel" style="max-width:none">
+        <h2>학생 비밀번호</h2>
+        <p class="hint" style="margin-top:-6px">학생은 번호를 누른 뒤 이 비밀번호(숫자 4자리)를 넣어야 들어갈 수 있어요. 비밀번호가 없는 번호는 들어갈 수 없어요.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px">
+          <button class="btn" id="genEmpty">빈 칸만 자동으로 만들기</button>
+          <button class="btn ghost" id="genAll">모두 새로 만들기</button>
+          <button class="btn ghost" id="printPins">쪽지로 인쇄하기</button>
+        </div>
+        <div class="pins" id="pinList"></div>
+        <button class="btn" id="savePins" style="margin-top:16px">비밀번호 저장</button>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="printArea"></div>
+
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true"></div>
+<div id="exDialog" class="modal hidden" role="dialog" aria-modal="true"></div>
+
+<script>
+/* ==========================================================
+   설정 (여기만 바꾸면 돼요)
+   ========================================================== */
+// Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값을 넣으세요.
+// 비워 두면 체험 모드로 동작해요.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB1HpzUoS1IDXSb3G5hrrg-xpnA7_BFxLA",
+  authDomain: "photo-gallery-bc520.firebaseapp.com",
+  projectId: "photo-gallery-bc520",
+  storageBucket: "photo-gallery-bc520.firebasestorage.app",
+  messagingSenderId: "930226698115",
+  appId: "1:930226698115:web:01f1aa9d83e8214d23e8b6"
+};
+const TEACHER_PASSWORD = "0521";
+// 학생 번호 기본값 (나중에 선생님 화면 '순위' 탭에서 바꿀 수 있어요)
+const DEFAULT_STUDENTS = "1-22,24,25";
+
+/* ==========================================================
+   저장소
+   ========================================================== */
+const store = {
+  exhibitions:{}, photos:{}, secrets:{}, comments:{}, scores:{}, pins:{},
+  settings:{ revealRanking:false, revealMembers:false, threshold:4, minScores:3, students:DEFAULT_STUDENTS }
+};
+const useFirebase = !!FIREBASE_CONFIG.apiKey && typeof firebase !== "undefined";
+let fs = null;
+
+const DB = {
+  init(){
+    if(!useFirebase){ document.getElementById("demoNote").classList.remove("hidden"); refresh(); return; }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fs = firebase.firestore();
+    ["exhibitions","photos","secrets","comments","scores"].forEach(col=>{
+      fs.collection(col).onSnapshot(snap=>{
+        const o={}; snap.forEach(d=>o[d.id]=d.data()); store[col]=o; refresh();
+      }, err=>toast("불러오지 못했어요: "+err.message));
+    });
+    fs.collection("settings").doc("main").onSnapshot(d=>{
+      if(d.exists) Object.assign(store.settings, d.data());
+      refresh(true);
+    });
+    fs.collection("settings").doc("pins").onSnapshot(d=>{
+      store.pins = d.exists ? d.data() : {};
+      if(tab==="manage" && isTeacher()) renderManage();
+    });
+  },
+  async setPins(pins){
+    if(useFirebase) return fs.collection("settings").doc("pins").set(pins);
+    store.pins={...pins};
+  },
+  async set(col,id,data,merge){
+    if(useFirebase) return fs.collection(col).doc(id).set(data,{merge:!!merge});
+    store[col][id] = merge ? {...(store[col][id]||{}), ...data} : data; refresh();
+  },
+  async del(col,id){
+    if(useFirebase) return fs.collection(col).doc(id).delete();
+    delete store[col][id]; refresh();
+  },
+  async setSettings(data){
+    if(useFirebase) return fs.collection("settings").doc("main").set(data,{merge:true});
+    Object.assign(store.settings,data); refresh(true);
+  }
+};
+
+/* ==========================================================
+   도우미
+   ========================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function askConfirm(msg,okText){
+  return new Promise(res=>{
+    const d=document.createElement("div"); d.className="confirm";
+    d.innerHTML=`<div class="box" role="alertdialog"><p>${esc(msg)}</p><div class="btns"><button class="btn ghost" data-a="0">취소</button><button class="btn" data-a="1">${esc(okText||"확인")}</button></div></div>`;
+    d.addEventListener("click",e=>{ const b=e.target.closest("button[data-a]"); if(b||e.target===d){ d.remove(); res(!!b&&b.dataset.a==="1"); } });
+    document.body.appendChild(d); d.querySelector('[data-a="1"]').focus();
+  });
+}
+function toast(msg){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+}
+function parseStudents(s){
+  const out=new Set();
+  String(s||"").split(",").forEach(p=>{
+    p=p.trim(); const m=p.match(/^(\d+)\s*-\s*(\d+)$/);
+    if(m){ for(let i=+m[1];i<=+m[2];i++) out.add(i); }
+    else if(/^\d+$/.test(p)) out.add(+p);
+  });
+  return [...out].sort((a,b)=>a-b);
+}
+const students = () => parseStudents(store.settings.students);
+const isTeacher = () => me && me.role==="teacher";
+let curEx=null, loginOpen=false, pendingEx=null;
+const ex = () => store.exhibitions[curEx] || {};
+const exClosed = () => !!ex().closed;
+const exPhotoIds = exId => Object.keys(store.photos).filter(id=>store.photos[id].exId===exId);
+const myNum = () => me && me.role==="student" ? me.num : null;
+const fmtNums = arr => arr.length ? [...arr].sort((a,b)=>a-b).map(n=>n+"번").join(", ") : "없음";
+
+function median(a){
+  if(!a.length) return null;
+  const s=[...a].sort((x,y)=>x-y), m=Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+
+/* 한 작품의 점수 계산
+   - 같이 만든 친구가 준 점수는 제외
+   - 다른 친구들 점수의 중간값보다 '기준'점 이상 낮은 점수는 일부러 낮게 준 것으로 보고 제외 */
+function photoStats(pid){
+  const members = new Set(store.secrets[pid]?.members || []);
+  const th = Number(store.settings.threshold)||4;
+  const rows = Object.values(store.scores).filter(s=>s.photoId===pid).map(s=>({...s,status:"ok"}));
+  rows.forEach(r=>{ if(members.has(r.by)) r.status="own"; });
+  const outs = rows.filter(r=>r.status==="ok");
+  outs.forEach(r=>{
+    const others = outs.filter(o=>o!==r).map(o=>o.score);
+    if(others.length>=3){
+      const med = median(others);
+      if(r.score <= med - th){ r.status="low"; r.median=med; }
+    }
+  });
+  const valid = rows.filter(r=>r.status==="ok").map(r=>r.score);
+  const avg = valid.length ? valid.reduce((a,b)=>a+b,0)/valid.length : null;
+  return { rows, valid, avg, members:[...members] };
+}
+
+function ranking(){
+  const minN = Number(store.settings.minScores)||1;
+  const list = Object.entries(store.photos)
+    .filter(([,p])=>p.exId===curEx)
+    .map(([id,p])=>({id,p,st:photoStats(id)}))
+    .filter(x=>x.st.avg!==null && x.st.valid.length>=minN)
+    .sort((a,b)=> b.st.avg-a.st.avg || b.st.valid.length-a.st.valid.length);
+  let rank=0, prev=null;
+  list.forEach((x,i)=>{ const k=x.st.avg.toFixed(2); if(k!==prev){rank=i+1;prev=k;} x.rank=rank; });
+  return list;
+}
+
+/* 사진 줄이기 (Firestore 문서 1MB 제한 때문에) */
+function compressImage(file,maxSide=1280,maxLen=650000){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(), fr=new FileReader();
+    img.onload=()=>{
+      let max=maxSide, q=0.82, data="";
+      for(let i=0;i<8;i++){
+        const sc=Math.min(1,max/Math.max(img.width,img.height));
+        const c=document.createElement("canvas");
+        c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        data=c.toDataURL("image/jpeg",q);
+        if(data.length<maxLen) break;
+        max*=0.8; q=Math.max(0.5,q-0.06);
+      }
+      resolve(data);
+    };
+    img.onerror=()=>reject(new Error("이 그림 파일은 열 수 없어요. jpg나 png 파일로 다시 골라 주세요"));
+    fr.onload=()=>{ img.src=fr.result; };
+    fr.onerror=()=>reject(new Error("파일을 읽을 수 없어요"));
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ==========================================================
+   로그인
+   ========================================================== */
+let me=null;
+try{ me=JSON.parse(localStorage.getItem("pg_me")||"null"); }catch(e){ me=null; }
+function saveMe(){ try{ localStorage.setItem("pg_me",JSON.stringify(me)); }catch(e){} }
+
+function renderLogin(){
+  $("numGrid").innerHTML = students().map(n=>`<button data-num="${n}">${n}</button>`).join("");
+}
+let pendingNum=null;
+$("numGrid").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-num]"); if(!b) return;
+  pendingNum=+b.dataset.num;
+  $("numGrid").classList.add("hidden");
+  $("pinBox").classList.remove("hidden");
+  $("pinTitle").textContent=pendingNum+"번 비밀번호를 넣어요";
+  $("spw").value=""; $("spw").focus();
+});
+function cancelPin(){
+  pendingNum=null; $("spw").value="";
+  $("pinBox").classList.add("hidden"); $("numGrid").classList.remove("hidden");
+}
+function studentLogin(){
+  const pin=store.pins[pendingNum];
+  if(!pin){ toast("아직 비밀번호가 없어요. 선생님께 말해 주세요"); return; }
+  if($("spw").value!==String(pin)){ toast("비밀번호가 맞지 않아요"); $("spw").value=""; return; }
+  me={role:"student",num:pendingNum}; saveMe(); cancelPin(); afterLogin();
+}
+$("sLoginBtn").onclick=studentLogin;
+$("pinCancel").onclick=cancelPin;
+$("spw").addEventListener("keydown",e=>{ if(e.key==="Enter") studentLogin(); });
+function teacherLogin(){
+  if($("tpw").value===TEACHER_PASSWORD){ me={role:"teacher"}; saveMe(); $("tpw").value=""; afterLogin(); }
+  else toast("비밀번호가 맞지 않아요");
+}
+$("tLoginBtn").onclick=teacherLogin;
+$("tpw").addEventListener("keydown",e=>{ if(e.key==="Enter") teacherLogin(); });
+$("logout").onclick=()=>{ me=null; saveMe(); closeModal(); curEx=null; loginOpen=false; showScreen(); };
+$("toHome").onclick=()=>{ closeModal(); curEx=null; showScreen(); };
+$("loginBack").onclick=()=>{ loginOpen=false; pendingEx=null; showScreen(); };
+$("homeTeacher").onclick=()=>{ pendingEx=null; loginOpen=true; showScreen(); };
+
+function afterLogin(){
+  loginOpen=false;
+  if(pendingEx && store.exhibitions[pendingEx]) openEx(pendingEx); else showScreen();
+  pendingEx=null;
+}
+function openEx(id){
+  if(!me){ pendingEx=id; loginOpen=true; showScreen(); return; }
+  curEx=id; showScreen(); switchTab("gallery");
+}
+function enter(){ showScreen(); switchTab("gallery"); }
+function showScreen(){
+  if(curEx && !store.exhibitions[curEx] && Object.keys(store.exhibitions).length) curEx=null;
+  const view = loginOpen && !me ? "login" : (me && curEx ? "main" : "home");
+  $("homeView").classList.toggle("hidden",view!=="home");
+  $("loginView").classList.toggle("hidden",view!=="login");
+  $("mainView").classList.toggle("hidden",view!=="main");
+  $("whoName").classList.toggle("hidden",!me);
+  $("logout").classList.toggle("hidden",!me);
+  $("toHome").classList.toggle("hidden",view!=="main");
+  $("homeTeacher").classList.toggle("hidden",!!me);
+  $("manageTabBtn").classList.toggle("hidden",!isTeacher());
+  if(me) $("whoName").textContent = isTeacher() ? "선생님" : me.num+"번";
+  applyBg(document.body, view==="main" ? ex() : null);
+  if(view==="main"){
+    $("hTitle").textContent = ex().title || "사진 전시회";
+    $("hSub").textContent = ex().desc || (exClosed()?"끝난 전시회예요":"사진으로 마음을 보여 주세요");
+  }else{
+    $("hTitle").textContent="우리 반 사진 전시회";
+    $("hSub").textContent="어느 전시회에 들어갈까요?";
+  }
+  if(view==="login"){
+    const t=store.exhibitions[pendingEx];
+    $("loginView").querySelector("h2").textContent = t ? `‘${t.title}’에 들어가요` : "내 번호를 눌러요";
+    renderLogin();
+  }else cancelPin();
+  if(view==="home") renderHome();
+}
+
+/* ==========================================================
+   탭
+   ========================================================== */
+let tab="gallery";
+document.querySelector("nav").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-tab]"); if(b) switchTab(b.dataset.tab);
+});
+function switchTab(t){
+  tab=t;
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  if(t==="manage" && !isTeacher()) t=tab="gallery";
+  ["gallery","upload","rank","manage"].forEach(x=>$("tab-"+x).classList.toggle("hidden",x!==t));
+  if(t==="upload"){ $("closedNote").classList.toggle("hidden",!exClosed()); $("uploadPanel").classList.toggle("hidden",exClosed()); renderMemberPick(); }
+  if(t==="manage") renderManage();
+  if(t==="rank") renderTeacherSettings();
+  refresh();
+}
+
+/* 데이터가 바뀔 때마다 보이는 부분만 다시 그리기 */
+function refresh(settingsChanged){
+  if(!$("homeView").classList.contains("hidden")){ renderHome(); return; }
+  if(!$("mainView").classList.contains("hidden") && curEx && !store.exhibitions[curEx]){ closeModal(); curEx=null; showScreen(); return; }
+  if(!me){ renderLogin(); return; }
+  if(curEx){
+    applyBg(document.body, ex());
+    $("hTitle").textContent = ex().title || "사진 전시회";
+    $("hSub").textContent = ex().desc || (exClosed()?"끝난 전시회예요":"사진으로 마음을 보여 주세요");
+    if(tab==="upload"){ $("closedNote").classList.toggle("hidden",!exClosed()); $("uploadPanel").classList.toggle("hidden",exClosed()); }
+  }
+  if(tab==="gallery") renderWall();
+  if(tab==="rank"){ renderRank(); if(settingsChanged) renderTeacherSettings(); }
+  if(openId) updateModal();
+}
+
+/* ==========================================================
+   전시장
+   ========================================================== */
+function renderWall(){
+  const ids = exPhotoIds(curEx).sort((a,b)=>(store.photos[b].createdAt||0)-(store.photos[a].createdAt||0));
+  if(!ids.length){
+    $("wall").innerHTML=`<div class="empty" style="grid-column:1/-1"><p class="jua" style="font-size:22px">아직 걸린 사진이 없어요</p><p>‘사진 올리기’에서 첫 작품을 걸어 보세요.</p></div>`;
+    return;
+  }
+  $("wall").innerHTML = ids.map(id=>{
+    const p=store.photos[id], st=photoStats(id);
+    const nC=Object.values(store.comments).filter(c=>c.photoId===id).length;
+    let meta="", secret="";
+    if(isTeacher()){
+      meta=`<span>평균 ${st.avg===null?"-":st.avg.toFixed(1)}점 (${st.valid.length}명)</span><span>💬 ${nC}</span>`;
+      secret=`<div class="secret">🔒 ${esc(fmtNums(st.members))}</div>`;
+    }else{
+      const mine = store.scores[id+"_"+myNum()];
+      const own = st.members.includes(myNum());
+      const tag = own ? `<span class="tag">우리 작품</span>` : mine ? `<span class="tag">내 점수 ${mine.score}점</span>` : `<span class="tag todo">점수 주기 전</span>`;
+      meta=`${tag}<span>💬 ${nC}</span>`;
+    }
+    return `<button class="work" data-id="${id}">
+      <div class="frame"><img src="${p.image}" alt="${esc(p.title)}" loading="lazy"></div>
+      <div class="plaque"><h3>${esc(p.title)}</h3><div class="meta">${meta}</div>${secret}</div>
+    </button>`;
+  }).join("");
+}
+$("wall").addEventListener("click",e=>{ const b=e.target.closest(".work"); if(b) openPhoto(b.dataset.id); });
+
+/* ==========================================================
+   사진 올리기
+   ========================================================== */
+let pendingImage=null;
+$("file").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    pendingImage=await compressImage(f);
+    $("preview").src=pendingImage; $("preview").classList.remove("hidden");
+  }catch(err){ toast(err.message); pendingImage=null; }
+});
+function renderMemberPick(){
+  const checked=new Set([...document.querySelectorAll("#memberPick input:checked")].map(i=>+i.value));
+  if(myNum()) checked.add(myNum());
+  $("memberPick").innerHTML = students().map(n=>{
+    const self = n===myNum();
+    return `<label><input type="checkbox" value="${n}" ${checked.has(n)?"checked":""} ${self?"disabled":""}><span>${n}${self?" (나)":""}</span></label>`;
+  }).join("");
+}
+$("uploadBtn").onclick=async ()=>{
+  const title=$("title").value.trim(), desc=$("desc").value.trim();
+  if(exClosed()) return toast("끝난 전시회에는 올릴 수 없어요");
+  if(!pendingImage) return toast("사진을 골라 주세요");
+  if(!title) return toast("작품 이름을 써 주세요");
+  if(!desc) return toast("무엇을 표현했는지 써 주세요");
+  const members=[...document.querySelectorAll("#memberPick input:checked")].map(i=>+i.value);
+  if(myNum() && !members.includes(myNum())) members.push(myNum());
+  const id=newId();
+  $("uploadBtn").disabled=true;
+  try{
+    await DB.set("photos",id,{exId:curEx,title,desc,image:pendingImage,createdAt:Date.now()});
+    await DB.set("secrets",id,{members,uploader:isTeacher()?"선생님":myNum()});
+    pendingImage=null; $("file").value=""; $("title").value=""; $("desc").value="";
+    $("preview").classList.add("hidden");
+    document.querySelectorAll("#memberPick input").forEach(i=>{ if(!i.disabled) i.checked=false; });
+    toast("전시장에 걸었어요");
+    switchTab("gallery");
+  }catch(err){ toast("올리지 못했어요: "+err.message); }
+  $("uploadBtn").disabled=false;
+};
+
+/* ==========================================================
+   작품 자세히 보기
+   ========================================================== */
+let openId=null;
+function openPhoto(id){
+  openId=id; const p=store.photos[id]; if(!p) return;
+  $("modal").innerHTML=`<div class="sheet">
+    <button class="close" aria-label="닫기" id="mClose">✕</button>
+    <img class="big" src="${p.image}" alt="${esc(p.title)}">
+    <h2>${esc(p.title)}</h2>
+    <p class="desc">${esc(p.desc)}</p>
+    <div class="sec" id="mScore"></div>
+    <div class="sec">
+      <h3>사진을 보고 느낀 점</h3>
+      <div id="mComments"></div>
+      <div class="row">
+        <textarea id="mText" maxlength="200" placeholder="이 사진을 보고 어떤 느낌이 들었나요?"></textarea>
+        <button class="btn" id="mSend">남기기</button>
+      </div>
+    </div>
+    <div id="mTeacher"></div>
+    <div id="mOwner" style="margin-top:14px"></div>
+  </div>`;
+  $("modal").classList.remove("hidden");
+  document.body.style.overflow="hidden";
+  $("mClose").onclick=closeModal;
+  $("mSend").onclick=sendComment;
+  updateModal();
+}
+function closeModal(){ openId=null; $("modal").classList.add("hidden"); $("modal").innerHTML=""; document.body.style.overflow=""; }
+$("modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeModal(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(dlg) $("dCancel").click(); else if(openId) closeModal(); } });
+
+function updateModal(){
+  const id=openId; if(!store.photos[id]){ closeModal(); return; }
+  const st=photoStats(id);
+
+  // 점수
+  if(isTeacher()){
+    $("mScore").innerHTML=`<h3>평균 점수</h3><p class="jua" style="font-size:30px;margin:0">${st.avg===null?"아직 없음":st.avg.toFixed(2)+"점"}</p><div class="hint">제외하지 않은 점수 ${st.valid.length}개로 냈어요.</div>`;
+  }else if(exClosed()){
+    const mine=store.scores[id+"_"+myNum()];
+    $("mScore").innerHTML=`<h3>점수 주기</h3><p class="hint">끝난 전시회라 점수를 줄 수 없어요.${mine?` 내가 준 점수는 ${mine.score}점이에요.`:""}</p>`;
+  }else if(st.members.includes(myNum())){
+    $("mScore").innerHTML=`<h3>점수 주기</h3><p class="hint">우리가 함께 만든 작품이라 점수를 줄 수 없어요.</p>`;
+  }else{
+    const mine=store.scores[id+"_"+myNum()];
+    $("mScore").innerHTML=`<h3>점수 주기</h3>
+      <div class="lock">🔒 내가 준 점수는 선생님만 볼 수 있어요.</div>
+      <div class="scores">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-s="${n}" class="${mine&&mine.score===n?"on":""}" aria-label="${n}점">${n}</button>`).join("")}</div>`;
+    $("mScore").querySelectorAll("button[data-s]").forEach(b=>b.onclick=async()=>{
+      const s=+b.dataset.s;
+      await DB.set("scores",id+"_"+myNum(),{photoId:id,by:myNum(),score:s,at:Date.now()});
+      toast(s+"점을 줬어요");
+    });
+  }
+
+  // 느낀 점
+  const cs=Object.entries(store.comments).filter(([,c])=>c.photoId===id).sort((a,b)=>a[1].at-b[1].at);
+  $("mComments").innerHTML = cs.length ? cs.map(([cid,c])=>{
+    const mine=c.by===myNum();
+    const by = isTeacher() ? (c.by==="선생님"?"선생님":c.by+"번") : (mine?"내가 쓴 글":"");
+    const canDel = isTeacher()||mine;
+    return `<div class="cmt"><div>${by?`<div class="by">${esc(by)}</div>`:""}<p>${esc(c.text)}</p></div>${canDel?`<button data-del="${cid}">지우기</button>`:""}</div>`;
+  }).join("") : `<p class="hint">첫 번째로 느낀 점을 남겨 보세요.</p>`;
+  $("mComments").querySelectorAll("button[data-del]").forEach(b=>b.onclick=async()=>{ if(await askConfirm("이 글을 지울까요?","지우기")) DB.del("comments",b.dataset.del); });
+
+  // 선생님 전용
+  if(isTeacher()){
+    const sec=store.secrets[id]||{};
+    const rows=[...st.rows].sort((a,b)=>a.by-b.by);
+    $("mTeacher").innerHTML=`<div class="teacher">
+      <h3>🔒 선생님만 보는 정보</h3>
+      <p style="margin:4px 0">올린 사람: ${esc(sec.uploader===undefined?"알 수 없음":(sec.uploader==="선생님"?"선생님":sec.uploader+"번"))}</p>
+      <p style="margin:4px 0 6px">함께한 친구 (눌러서 고칠 수 있어요)</p>
+      <div class="pick" id="mMembers">${students().map(n=>`<label><input type="checkbox" value="${n}" ${st.members.includes(n)?"checked":""}><span>${n}</span></label>`).join("")}</div>
+      <h3 style="margin-top:14px">받은 점수</h3>
+      ${rows.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>준 사람</th><th>점수</th><th>반영</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${r.by}번</td><td class="${r.status==="ok"?"":"x"}">${r.score}점</td><td>${
+        r.status==="ok"?"반영":r.status==="own"?'<span class="why">같이 만든 친구라 제외</span>':`<span class="why">다른 친구들(중간 ${r.median}점)보다 많이 낮아 제외</span>`
+      }</td></tr>`).join("")}</tbody></table></div>`:`<p class="hint">아직 받은 점수가 없어요.</p>`}
+    </div>`;
+    $("mMembers").addEventListener("change",()=>{
+      const members=[...document.querySelectorAll("#mMembers input:checked")].map(i=>+i.value);
+      DB.set("secrets",id,{members},true);
+    });
+  }else{ $("mTeacher").innerHTML=""; }
+
+  // 지우기 (선생님 또는 올린 사람)
+  const sec=store.secrets[id]||{};
+  if(isTeacher() || (myNum() && sec.uploader===myNum())){
+    $("mOwner").innerHTML=`<button class="btn danger" id="mDelete">이 작품 내리기</button>`;
+    $("mDelete").onclick=deletePhoto;
+  }else $("mOwner").innerHTML="";
+}
+
+async function sendComment(){
+  if(exClosed()) return toast("끝난 전시회라 글을 남길 수 없어요");
+  const text=$("mText").value.trim(); if(!text) return toast("느낀 점을 써 주세요");
+  await DB.set("comments",newId(),{photoId:openId,text,by:isTeacher()?"선생님":myNum(),at:Date.now()});
+  $("mText").value="";
+}
+async function deletePhoto(){
+  const id=openId;
+  if(!(await askConfirm("이 작품을 전시장에서 내릴까요? 점수와 느낀 점도 함께 지워져요.","내리기"))) return;
+  closeModal();
+  await Promise.all(photoDeleteJobs(id)); toast("작품을 내렸어요");
+}
+function photoDeleteJobs(id){
+  const jobs=[DB.del("photos",id),DB.del("secrets",id)];
+  Object.entries(store.comments).forEach(([cid,c])=>{ if(c.photoId===id) jobs.push(DB.del("comments",cid)); });
+  Object.entries(store.scores).forEach(([sid,s])=>{ if(s.photoId===id) jobs.push(DB.del("scores",sid)); });
+  return jobs;
+}
+
+/* ==========================================================
+   전시회 목록
+   ========================================================== */
+function renderHome(){
+  $("exNewWrap").classList.toggle("hidden",!isTeacher());
+  const ids=Object.keys(store.exhibitions).sort((a,b)=>{
+    const A=store.exhibitions[a],B=store.exhibitions[b];
+    return (!!A.closed-!!B.closed) || (B.createdAt||0)-(A.createdAt||0);
+  });
+  if(!ids.length){
+    $("exList").innerHTML=`<div class="empty" style="grid-column:1/-1"><p class="jua" style="font-size:22px">아직 열린 전시회가 없어요</p><p>${isTeacher()?"‘새 전시회 열기’를 눌러 첫 전시회를 열어 보세요.":"선생님이 전시회를 열면 여기에 나타나요."}</p></div>`;
+    return;
+  }
+  $("exList").innerHTML=ids.map(id=>{
+    const e=store.exhibitions[id];
+    const pids=exPhotoIds(id).sort((a,b)=>(store.photos[b].createdAt||0)-(store.photos[a].createdAt||0));
+    const cover=pids.length?`<img src="${store.photos[pids[0]].image}" alt="">`:`<span class="blank">아직 작품이 없어요</span>`;
+    const status=e.closed?`<span class="tag done">끝남</span>`:`<span class="tag">전시 중</span>`;
+    const teacher = isTeacher() ? `<div class="exact"><button class="btn ghost" data-act="edit" data-id="${id}">고치기</button><button class="btn ghost" data-act="toggle" data-id="${id}">${e.closed?"다시 열기":"전시 끝내기"}</button><button class="btn danger" data-act="del" data-id="${id}">지우기</button></div>` : "";
+    return `<div class="excard">
+      <button class="open" data-open="${id}"><div class="cover">${cover}</div>
+      <div class="exinfo"><h3>${esc(e.title)}</h3>${e.desc?`<p>${esc(e.desc)}</p>`:""}<div class="meta">${status}<span>작품 ${pids.length}점</span></div></div></button>
+      ${teacher}</div>`;
+  }).join("");
+}
+
+/* ---------- 배경 ---------- */
+const THEMES=[["spring","봄"],["summer","여름"],["autumn","가을"],["winter","겨울"],["plain","기본"],["custom","직접 고르기"]];
+function hexRgba(hex,a){ const h=(hex||"#E7ECEF").replace("#",""); const n=parseInt(h.length===3?h.split("").map(c=>c+c).join(""):h,16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+function isDark(hex){ const h=(hex||"#E7ECEF").replace("#",""); const n=parseInt(h,16); const r=n>>16&255,g=n>>8&255,b=n&255; return (0.299*r+0.587*g+0.114*b)/255 < 0.5; }
+function applyBg(el,cfg){
+  const t = cfg ? (cfg.theme||"autumn") : "";
+  const layer = el===document.body ? $("bg") : el;
+  if(t) el.dataset.theme=t; else delete el.dataset.theme;
+  layer.style.backgroundImage=""; layer.style.backgroundSize=""; layer.style.backgroundRepeat=""; layer.style.backgroundPosition="";
+  if(layer!==el){ layer.style.backgroundColor=""; el.style.backgroundColor=""; }
+  el.style.removeProperty("--wall"); delete el.dataset.dark;
+  if(t==="custom"){
+    const wall=cfg.wallColor||"#E7ECEF";
+    el.style.setProperty("--wall",wall);
+    if(isDark(wall)) el.dataset.dark="1";
+    // 전시장 화면에서는 배경을 뒤쪽 층에 깔고, 앞의 body는 투명하게 해서 가리지 않게 해요
+    if(layer!==el){ layer.style.backgroundColor=wall; el.style.backgroundColor="transparent"; }
+    if(cfg.bgImage){
+      const tint=hexRgba(wall,(cfg.bgDim??40)/100), tileMode=cfg.bgMode==="tile";
+      layer.style.backgroundImage=`linear-gradient(${tint},${tint}),url("${cfg.bgImage}")`;
+      layer.style.backgroundSize = tileMode ? "100% 100%, 240px auto" : "100% 100%, cover";
+      layer.style.backgroundRepeat = tileMode ? "no-repeat, repeat" : "no-repeat, no-repeat";
+      layer.style.backgroundPosition = "center, center";
+    }
+  }
+}
+
+/* ---------- 전시회 열기·고치기 창 ---------- */
+let dlg=null;
+function openExDialog(id){
+  const e=id?store.exhibitions[id]:{};
+  dlg={id, title:e.title||"", desc:e.desc||"", theme:e.theme||"autumn", wallColor:e.wallColor||"#F3E9D8", bgImage:e.bgImage||"", bgMode:e.bgMode||"cover", bgDim:e.bgDim??40};
+  $("exDialog").innerHTML=`<div class="sheet">
+    <button class="close" aria-label="닫기" id="dClose">✕</button>
+    <h2 style="margin-top:0">${id?"전시회 고치기":"새 전시회 열기"}</h2>
+    <div class="field"><label class="lbl" for="dTitle">전시회 제목</label><input type="text" id="dTitle" maxlength="30" placeholder="예: 가을 낙엽 그림 전시회" value="${esc(dlg.title)}"></div>
+    <div class="field"><label class="lbl" for="dDesc">한 줄 소개 (안 써도 돼요)</label><input type="text" id="dDesc" maxlength="60" placeholder="예: 낙엽으로 만든 그림을 걸어요" value="${esc(dlg.desc)}"></div>
+    <div class="field"><span class="lbl jua" style="font-size:18px;display:block;margin-bottom:6px">배경</span>
+      <div class="themes">${THEMES.map(([v,n])=>`<label><input type="radio" name="dTheme" value="${v}" ${dlg.theme===v?"checked":""}><span class="sw ${v==="custom"?"custom":""}" ${v!=="custom"?`data-theme="${v}"`:""}>${v==="custom"?"🎨":""}</span><b>${n}</b></label>`).join("")}</div>
+      <div class="customset hidden" id="dCustom">
+        <div><span class="lbl jua" style="font-size:17px">벽 색깔</span> <input type="color" id="dColor" value="${dlg.wallColor}"></div>
+        <div><span class="lbl jua" style="font-size:17px">배경 그림 (안 넣어도 돼요)</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="file" id="dFile" accept="image/*"><button class="btn ghost" id="dNoImg" type="button">그림 빼기</button></div></div>
+        <div id="dImgOpts">
+          <div class="seg" style="margin-bottom:10px"><label><input type="radio" name="dMode" value="cover" ${dlg.bgMode==="cover"?"checked":""}><span>화면 가득 한 장</span></label><label><input type="radio" name="dMode" value="tile" ${dlg.bgMode==="tile"?"checked":""}><span>무늬처럼 반복</span></label></div>
+          <label class="lbl jua" for="dDim" style="font-size:17px">흐리게 하기</label>
+          <input type="range" id="dDim" min="0" max="90" step="5" value="${dlg.bgDim}">
+          <div class="hint">오른쪽으로 갈수록 그림이 흐려져서 작품이 더 잘 보여요.</div>
+        </div>
+      </div>
+      <div class="bgprev" id="dPrev"><i></i><i></i><i></i></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" id="dCancel">취소</button><button class="btn" id="dSave">${id?"저장":"전시회 열기"}</button></div>
+  </div>`;
+  $("exDialog").classList.remove("hidden"); document.body.style.overflow="hidden";
+  const close=()=>{ $("exDialog").classList.add("hidden"); $("exDialog").innerHTML=""; dlg=null; document.body.style.overflow=""; };
+  $("dClose").onclick=close; $("dCancel").onclick=close;
+  $("exDialog").onclick=ev=>{ if(ev.target.id==="exDialog") close(); };
+  const sync=()=>{
+    dlg.theme=document.querySelector('input[name="dTheme"]:checked').value;
+    dlg.wallColor=$("dColor").value; dlg.bgDim=+$("dDim").value;
+    dlg.bgMode=document.querySelector('input[name="dMode"]:checked').value;
+    $("dCustom").classList.toggle("hidden",dlg.theme!=="custom");
+    $("dImgOpts").classList.toggle("hidden",!dlg.bgImage);
+    $("dNoImg").classList.toggle("hidden",!dlg.bgImage);
+    applyBg($("dPrev"),dlg);
+  };
+  $("exDialog").querySelectorAll('input[name="dTheme"],input[name="dMode"]').forEach(i=>i.onchange=sync);
+  $("dColor").oninput=sync; $("dDim").oninput=sync;
+  $("dFile").onchange=async ev=>{
+    const f=ev.target.files[0]; if(!f) return;
+    try{ dlg.bgImage=await compressImage(f,1600,350000); sync(); }catch(err){ toast(err.message); }
+  };
+  $("dNoImg").onclick=()=>{ dlg.bgImage=""; $("dFile").value=""; sync(); };
+  $("dSave").onclick=async()=>{
+    const title=$("dTitle").value.trim(); if(!title) return toast("전시회 제목을 써 주세요");
+    const data={title,desc:$("dDesc").value.trim(),theme:dlg.theme,wallColor:dlg.wallColor,bgImage:dlg.theme==="custom"?dlg.bgImage:"",bgMode:dlg.bgMode,bgDim:dlg.bgDim};
+    $("dSave").disabled=true;
+    try{
+      if(dlg.id){ await DB.set("exhibitions",dlg.id,data,true); toast("고쳤어요"); }
+      else{ await DB.set("exhibitions",newId(),{...data,createdAt:Date.now(),closed:false,revealRanking:false,revealMembers:false}); toast("전시회를 열었어요"); }
+      close();
+    }catch(err){ toast("저장하지 못했어요: "+err.message); $("dSave").disabled=false; }
+  };
+  sync(); $("dTitle").focus();
+}
+$("exNew").onclick=()=>openExDialog(null);
+$("exList").addEventListener("click",async e=>{
+  const o=e.target.closest("[data-open]"); if(o){ openEx(o.dataset.open); return; }
+  const b=e.target.closest("[data-act]"); if(!b) return;
+  const id=b.dataset.id, act=b.dataset.act;
+  if(act==="edit") openExDialog(id);
+  if(act==="toggle"){
+    const c=!store.exhibitions[id].closed;
+    if(c && !(await askConfirm("전시를 끝낼까요? 사진 올리기, 점수 주기, 느낀 점 쓰기가 멈추고 보기만 할 수 있어요.","끝내기"))) return;
+    await DB.set("exhibitions",id,{closed:c},true); toast(c?"전시를 끝냈어요":"다시 열었어요");
+  }
+  if(act==="del"){
+    const n=exPhotoIds(id).length;
+    if(!(await askConfirm(`‘${store.exhibitions[id].title}’ 전시회를 지울까요? 작품 ${n}점과 점수, 느낀 점이 모두 사라지고 되돌릴 수 없어요.`,"지우기"))) return;
+    const jobs=[DB.del("exhibitions",id)];
+    exPhotoIds(id).forEach(pid=>jobs.push(...photoDeleteJobs(pid)));
+    await Promise.all(jobs); toast("전시회를 지웠어요");
+  }
+});
+
+
+/* ==========================================================
+   순위
+   ========================================================== */
+function renderRank(){
+  const list=ranking();
+  const reveal=isTeacher()||ex().revealRanking;
+  if(!reveal){
+    $("rankArea").innerHTML=`<div class="empty"><p class="jua" style="font-size:24px">순위는 아직 비밀이에요</p><p>선생님이 발표할 때까지 기다려 주세요.</p></div>`;
+    return;
+  }
+  const top=list.filter(x=>x.rank<=3);
+  const showMembers = isTeacher()||ex().revealMembers;
+  const card=x=>`<button class="place p${x.rank}" data-id="${x.id}">
+      <div class="frame"><img src="${x.p.image}" alt="${esc(x.p.title)}"></div>
+      <span class="medal">${x.rank}등</span>
+      <h3>${esc(x.p.title)}</h3>
+      <div class="avg">평균 ${x.st.avg.toFixed(1)}점</div>
+      ${showMembers?`<div class="avg">${esc(fmtNums(x.st.members))}</div>`:""}
+    </button>`;
+  let html="";
+  if(!top.length){
+    html=`<div class="empty"><p class="jua" style="font-size:22px">아직 순위를 낼 수 없어요</p><p>작품마다 점수가 ${store.settings.minScores}개 이상 모이면 순위가 나와요.</p></div>`;
+  }else{
+    const by=r=>top.filter(x=>x.rank===r);
+    html=`<div class="podium">
+      <div>${by(2).map(card).join("")}</div>
+      <div>${by(1).map(card).join("")}</div>
+      <div>${by(3).map(card).join("")}</div>
+    </div>`;
+  }
+  if(isTeacher()){
+    html+=`<div class="panel" style="max-width:none"><h2>전체 순위</h2>${list.length?`<div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>순위</th><th>작품</th><th>함께한 친구</th><th>평균</th><th>반영/전체</th></tr></thead><tbody>
+      ${list.map(x=>`<tr><td>${x.rank}</td><td><button class="link" data-id="${x.id}" style="padding:0">${esc(x.p.title)}</button></td><td>${esc(fmtNums(x.st.members))}</td><td>${x.st.avg.toFixed(2)}</td><td>${x.st.valid.length}/${x.st.rows.length}</td></tr>`).join("")}
+      </tbody></table></div>`:`<p class="hint">점수가 충분히 모인 작품이 없어요.</p>`}
+      ${lowReport()}
+    </div>`;
+  }
+  $("rankArea").innerHTML=html;
+  $("rankArea").querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>openPhoto(b.dataset.id));
+}
+
+function lowReport(){
+  const cnt={}, given={};
+  exPhotoIds(curEx).forEach(id=>photoStats(id).rows.forEach(r=>{
+    given[r.by]=(given[r.by]||0)+1;
+    if(r.status==="low") cnt[r.by]=(cnt[r.by]||0)+1;
+  }));
+  const ks=Object.keys(cnt).map(Number).sort((a,b)=>cnt[b]-cnt[a]||a-b);
+  const notYet=students().filter(n=>!given[n]);
+  return `<h3 style="margin-top:18px" class="jua">낮은 점수로 제외된 횟수</h3>
+    ${ks.length?`<p>${ks.map(n=>`${n}번 ${cnt[n]}회`).join(", ")}</p>`:`<p class="hint">제외된 점수가 없어요.</p>`}
+    <h3 style="margin-top:10px" class="jua">아직 점수를 하나도 안 준 학생</h3>
+    <p>${notYet.length?notYet.map(n=>n+"번").join(", "):'<span class="hint">모두 참여했어요.</span>'}</p>`;
+}
+
+function renderTeacherSettings(){
+  const box=$("teacherRank");
+  if(!isTeacher()){ box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  const s=store.settings;
+  box.innerHTML=`<div class="panel" style="max-width:none"><h2>선생님 설정</h2><p class="hint" style="margin-top:-6px">순위 공개는 이 전시회에만, 나머지는 모든 전시회에 똑같이 적용돼요.</p>
+    <div class="settings">
+      <label class="switch"><input type="checkbox" id="sReveal" ${ex().revealRanking?"checked":""}> 학생들에게 1·2·3등 보여 주기</label>
+      <label class="switch"><input type="checkbox" id="sMembers" ${ex().revealMembers?"checked":""}> 순위 공개할 때 만든 친구도 보여 주기</label>
+      <div><label class="lbl jua" for="sTh">낮은 점수 제외 기준</label>
+        <input type="number" id="sTh" min="1" max="9" value="${s.threshold}">
+        <div class="hint">다른 친구들 점수의 중간값보다 이만큼 이상 낮으면 제외해요. (점수가 4개 이상 모였을 때만)</div></div>
+      <div><label class="lbl jua" for="sMin">순위에 들려면 필요한 점수 개수</label>
+        <input type="number" id="sMin" min="1" max="30" value="${s.minScores}"></div>
+      <div><label class="lbl jua" for="sStu">학생 번호</label>
+        <input type="text" id="sStu" value="${esc(s.students)}">
+        <div class="hint">예: 1-22,24,25</div></div>
+    </div>
+    <button class="btn" id="sSave" style="margin-top:14px">설정 저장</button>
+  </div>`;
+  $("sSave").onclick=async()=>{
+    const stu=$("sStu").value.trim();
+    if(!parseStudents(stu).length) return toast("학생 번호를 확인해 주세요");
+    await DB.set("exhibitions",curEx,{revealRanking:$("sReveal").checked, revealMembers:$("sMembers").checked},true);
+    await DB.setSettings({
+      threshold:Math.min(9,Math.max(1,+$("sTh").value||4)),
+      minScores:Math.max(1,+$("sMin").value||1), students:stu
+    });
+    toast("설정을 저장했어요");
+  };
+}
+
+/* ==========================================================
+   학생 비밀번호 (선생님 전용)
+   ========================================================== */
+function renderManage(){
+  $("pinList").innerHTML = students().map(n=>{
+    const v=store.pins[n]||"";
+    return `<label><b>${n}번</b><input type="text" inputmode="numeric" maxlength="4" data-n="${n}" value="${esc(v)}" class="${v?"":"none"}" placeholder="없음"></label>`;
+  }).join("");
+}
+$("pinList").addEventListener("input",e=>{
+  if(e.target.matches("input")){ e.target.value=e.target.value.replace(/\D/g,"").slice(0,4); e.target.classList.toggle("none",!e.target.value); }
+});
+function makePins(onlyEmpty){
+  const inputs=[...document.querySelectorAll("#pinList input")];
+  const used=new Set(inputs.map(i=>i.value).filter(Boolean));
+  const bad=new Set(["0000","1111","2222","3333","4444","5555","6666","7777","8888","9999","1234","4321"]);
+  inputs.forEach(i=>{
+    if(onlyEmpty && i.value) return;
+    if(!onlyEmpty) used.delete(i.value);
+    let p; do{ p=String(Math.floor(Math.random()*10000)).padStart(4,"0"); }while(used.has(p)||bad.has(p));
+    used.add(p); i.value=p; i.classList.remove("none");
+  });
+  toast("만들었어요. ‘비밀번호 저장’을 눌러야 적용돼요");
+}
+$("genEmpty").onclick=()=>makePins(true);
+$("genAll").onclick=async()=>{ if(await askConfirm("모든 학생의 비밀번호를 새로 만들까요? 이미 나눠 준 비밀번호는 쓸 수 없게 돼요.","새로 만들기")) makePins(false); };
+$("savePins").onclick=async()=>{
+  const pins={}; let short=false;
+  document.querySelectorAll("#pinList input").forEach(i=>{
+    if(!i.value) return;
+    if(i.value.length!==4) short=true;
+    pins[i.dataset.n]=i.value;
+  });
+  if(short) return toast("비밀번호는 숫자 4자리로 맞춰 주세요");
+  await DB.setPins(pins); renderManage(); toast("비밀번호를 저장했어요");
+};
+$("printPins").onclick=()=>{
+  const list=students().filter(n=>store.pins[n]);
+  if(!list.length) return toast("저장된 비밀번호가 없어요");
+  $("printArea").innerHTML=`<div class="print-bar"><button class="btn" id="doPrint">인쇄하기</button><button class="btn ghost" id="closePrint">닫기</button></div>
+    <div class="cards">${list.map(n=>`<div><b>${n}번</b><span>${esc(store.pins[n])}</span><p>사진 전시회 비밀번호</p></div>`).join("")}</div>`;
+  $("printArea").classList.add("show");
+  $("doPrint").onclick=()=>{ try{ window.print(); }catch(e){ toast("이 화면에서는 인쇄할 수 없어요"); } };
+  $("closePrint").onclick=()=>{ $("printArea").classList.remove("show"); $("printArea").innerHTML=""; };
+};
+
+/* 시작 */
+showScreen();
+DB.init();
+</script>
+</body>
+</html>
